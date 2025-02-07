@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Sova</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Sova</h1>
+      <button id="themeToggle" class="theme-toggle" title="Переключить тему">
+        
+        <img id="themeIcon" src="../icons/sun.svg" alt="Toggle Theme">
+      </button>
+    </div>
+
+    <div class="toggle">
+      <label for="autoSkipIntro">Пропуск заставки</label>
+      <label class="switch">
+        <input type="checkbox" id="autoSkipIntro">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle">
+      <label for="autoNextEpisode">Переход к следующей серии</label>
+      <label class="switch">
+        <input type="checkbox" id="autoNextEpisode">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle">
+      <label for="autoPlayVideo">Автозапуск серии</label>
+      <label class="switch">
+        <input type="checkbox" id="autoPlayVideo">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="credit">by DaHexv</div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
