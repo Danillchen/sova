@@ -1,0 +1,227 @@
+// ==UserScript==
+// @name         Sova Tampermonkey
+// @namespace    http://tampermonkey.net/
+// @version      1.7
+// @description  Автоматический пропуск заставки, переход к следующей серии и автозапуск видео на сайте jut.su
+// @author       DaHexv
+// @match        *://jut.su/*
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_registerMenuCommand
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    function getSetting(name, defaultValue) {
+        return GM_getValue(name, defaultValue);
+    }
+
+    function setSetting(name, value) {
+        GM_setValue(name, value);
+    }
+
+    function createMenuButton() {
+        const menuButton = document.createElement('button');
+        menuButton.innerText = '⚙️';
+        menuButton.classList.add('menu-button');
+
+        const dropdown = document.createElement('div');
+        dropdown.classList.add('menu-dropdown');
+        dropdown.style.display = 'none';
+
+        function createToggle(name, label) {
+            const option = document.createElement('div');
+            option.classList.add('menu-option');
+
+            const text = document.createElement('span');
+            text.innerText = label;
+
+            const toggleSwitch = document.createElement('label');
+            toggleSwitch.classList.add('toggle-switch');
+            toggleSwitch.innerHTML = `
+                <input type="checkbox" ${getSetting(name, false) ? 'checked' : ''}>
+                <span class="slider"></span>
+            `;
+            toggleSwitch.querySelector('input').onchange = (event) => setSetting(name, event.target.checked);
+
+            option.appendChild(text);
+            option.appendChild(toggleSwitch);
+            dropdown.appendChild(option);
+        }
+
+        createToggle("autoPlayVideo", "Автозапуск видео");
+        createToggle("autoSkipIntro", "Пропуск заставки");
+        createToggle("autoNextEpisode", "Автопереход к следующей серии");
+
+        const closeButton = document.createElement('button');
+        closeButton.innerText = 'Ок';
+        closeButton.classList.add('menu-ok-button');
+        closeButton.onclick = () => dropdown.style.display = 'none';
+        dropdown.appendChild(closeButton);
+
+        menuButton.onclick = (event) => {
+            event.stopPropagation();
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        };
+
+        document.body.appendChild(menuButton);
+        document.body.appendChild(dropdown);
+
+        document.addEventListener('click', (event) => {
+            if (!dropdown.contains(event.target) && event.target !== menuButton) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Добавляем стили
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .menu-button {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                cursor: pointer;
+                border: none;
+                background: transparent;
+                font-size: 24px;
+                z-index: 1001;
+                transition: transform 0.2s ease-in-out;
+            }
+            .menu-button:hover {
+                transform: scale(1.1);
+            }
+            .menu-button:active {
+                transform: scale(0.9);
+            }
+            .menu-dropdown {
+                position: fixed;
+                top: 50px;
+                right: 10px;
+                background: #1e1e1e;
+                border: 1px solid #444;
+                padding: 15px;
+                z-index: 1000;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+                color: #fff;
+                border-radius: 8px;
+                width: 290px;
+                font-family: 'Segoe UI', sans-serif;
+                animation: fadeIn 0.3s ease-in-out;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .menu-option {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+                font-size: 14px;
+            }
+            .menu-ok-button {
+                width: 100%;
+                margin-top: 10px;
+                padding: 8px;
+                background: #8e44ad;
+                border: none;
+                color: #fff;
+                cursor: pointer;
+                border-radius: 4px;
+                font-size: 14px;
+                transition: background 0.2s, transform 0.2s;
+            }
+            .menu-ok-button:hover {
+                background: #9b59b6;
+            }
+            .menu-ok-button:active {
+                transform: scale(0.95);
+            }
+            .toggle-switch {
+                position: relative;
+                display: inline-block;
+                width: 34px;
+                height: 20px;
+            }
+            .toggle-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #ccc;
+                transition: .4s;
+                border-radius: 20px;
+            }
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 14px;
+                width: 14px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                transition: .4s;
+                border-radius: 50%;
+            }
+            input:checked + .slider {
+                background-color: #8e44ad;
+            }
+            input:checked + .slider:before {
+                transform: translateX(14px);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    createMenuButton();
+    function isVisible(elem) {
+        return !!(elem && (elem.offsetWidth || elem.offsetHeight || elem.getClientRects().length));
+    }
+
+    const videoCheckInterval = setInterval(() => {
+        const video = document.querySelector('video');
+        const playButton = document.querySelector('.vjs-big-play-button');
+
+        if (video && playButton && isVisible(playButton)) {
+            clearInterval(videoCheckInterval);
+            console.log("Sova: Видео найдено, плеер загружен");
+
+            if (getSetting("autoPlayVideo", false) && video.paused) {
+                playButton.click();
+                console.log("Sova: Нажата кнопка воспроизведения");
+            }
+
+            if (getSetting("autoSkipIntro", false)) {
+                const skipIntroInterval = setInterval(() => {
+                    const skipButton = document.querySelector('.vjs-overlay-bottom-left.vjs-overlay-skip-intro');
+                    if (skipButton && isVisible(skipButton)) {
+                        console.log("Sova: Кнопка пропуска заставки найдена, кликаем.");
+                        skipButton.click();
+                        clearInterval(skipIntroInterval);
+                    }
+                }, 500);
+            }
+
+            if (getSetting("autoNextEpisode", false)) {
+                video.addEventListener('ended', () => {
+                    const nextEpisodeInterval = setInterval(() => {
+                        const nextButton = document.querySelector('.vjs-overlay-bottom-right.vjs-overlay-skip-intro');
+                        if (nextButton && isVisible(nextButton)) {
+                            console.log("Sova: Кнопка перехода к следующей серии найдена, кликаем.");
+                            clearInterval(nextEpisodeInterval);
+                            nextButton.click();
+                        }
+                    }, 500);
+                });
+            }
+        }
+    }, 500);
+})();
